@@ -8,7 +8,8 @@ f = open('episode_reward.txt')
 lines = f.readlines()
 reward = []
 for line in lines:
-    reward.append(float(line))
+    if float(line)>-300:
+        reward.append(float(line))
 
 plt.plot(reward)
 plt.show()

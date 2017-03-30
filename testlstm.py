@@ -17,11 +17,19 @@ with tf.Graph().as_default():
     cell = tf.nn.rnn_cell.BasicLSTMCell(size,forget_bias = 0.0,state_is_tuple = True)
     input_data = tf.placeholder(tf.float32,[1,num_states])
     output_data = tf.placeholder(tf.float32,[1,num_actions])
-    state = cell.zero_state(1,tf.float32)
+    c = tf.Variable(tf.zeros([1,3]))
+    h = tf.Variable(tf.zeros([1,3]))
+ 
+    statec = tf.placeholder(tf.float32,[1,size])
+    stateh = tf.placeholder(tf.float32,[1,size])
+    state = tuple([statec,stateh])
+
     input = input_data
+    print state
     (output,state) = cell(input,state)
     output = tf.reshape(output,[-1,size])
-    
+    print state
+
     w = tf.Variable(tf.truncated_normal([size,num_actions],stddev=0.1))
     
     b = tf.Variable(tf.truncated_normal([num_actions],stddev=0.1))
@@ -34,23 +42,28 @@ with tf.Graph().as_default():
     
     sess.run(tf.initialize_all_variables())
     
-    print state
-    state_reset = tf.assign(state,([1,1,1],[2,2,2]))
+    c = np.array([[0,0,0]])
+    h = np.array([[0,0,0]]) 
+    s = ([c,h])   
     
-    for i in range(3):
-        x = np.array(i).reshape(1,1)
-        y = np.array(i).reshape(1,1)
-        print sess.run(state,feed_dict={input_data:x,output_data:y})
-        sess.run(train,feed_dice={input_data:x,output_data:y})
-        #print state
-    print sess.run(state,feed_dict={input_data:x,output_data:y})
-    sess.run(state_reset)
-    print sess.run(state,feed_dict={input_data:x,output_data:y})
-    
-
-
-        #todo:关于state到底应该怎么办，看看不然看看feed_dict怎么搞吧，或者看看人家rnn是怎么搞的
-        #经过实验，state不用feed就可以变！！！！！
+    for i in range(9):
+        x = np.array(1).reshape(1,1)
+        y = np.array(1).reshape(1,1)
         
-        #下面的问题，如何让state初始化，但是其他变量不初始化呢？
-        #其实还是如何手动改state的问题，哭晕
+       
+        if i == 0:
+            [o,s[0],s[1]] = sess.run([output,state[0],state[1]],feed_dict={input_data:x,output_data:y,stateh:h,statec:c})
+            print o
+            print s[1]
+        else:
+            [o,s[0],s[1]] = sess.run([output,state[0],state[1]],feed_dict={input_data:x,output_data:y,stateh:s[1],statec:s[0]})
+            print o            
+        
+
+
+        #已经解决了state赋值的问题，
+        #未解决如何同事计算state和output的问题,
+        
+        #这些问题的关键都在与tuple与tensor不好转换，将tuple分开，问题就迎刃而解了
+        
+   

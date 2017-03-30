@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 import math
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
 BATCH_SIZE = 1
 TAU = 0.5
 
@@ -16,16 +16,16 @@ class CriticNet:
     actor network model of DDPG algorthm
     '''
     
-    def __init__(self,num_states,num_actions):
+    def __init__(self,num_states,num_hidden_states,num_actions):
         
         self.g = tf.Graph()
         with self.g.as_default():
             self.sess = tf.InteractiveSession()
             #critic network
-            self.w1,self.b1,self.w2,self.w2_action,self.b2,self.w3,self.b3,self.critic_q_model,self.critic_state_in,self.critic_action_in=self.create_critic_net(num_states,num_actions)
+            self.w1,self.b1,self.w2,self.w2_action,self.b2,self.w3,self.b3,self.critic_q_model,self.critic_state_in,self.critic_action_in=self.create_critic_net(num_states,num_hidden_states,num_actions)
             
             #target network
-            self.t_w1,self.t_b1,self.t_w2,self.t_w2_action,self.t_b2,self.t_w3,self.t_b3,self.t_critic_q_model,self.t_critic_state_in,self.t_critic_action_in=self.create_critic_net(num_states,num_actions)
+            self.t_w1,self.t_b1,self.t_w2,self.t_w2_action,self.t_b2,self.t_w3,self.t_b3,self.t_critic_q_model,self.t_critic_state_in,self.t_critic_action_in=self.create_critic_net(num_states,num_hidden_states,num_actions)
             
             #cost
             self.q_value_in = tf.placeholder('float',[None,1])
@@ -58,15 +58,15 @@ class CriticNet:
                 self.t_b2.assign(self.b2),
                 self.t_b3.assign(self.b3),])
                 
-    def create_critic_net(self,num_states,num_actions):
+    def create_critic_net(self,num_states,num_hidden_states,num_actions):
         '''
         network that takes states and return action
         '''
         N_HIDDEN_1 = 40
         N_HIDDEN_2 = 30
-        critic_state_in = tf.placeholder('float',[None,num_states])
+        critic_state_in = tf.placeholder('float',[None,num_states+num_hidden_states])
         critic_action_in = tf.placeholder('float',[None,num_actions])
-        w1=tf.Variable(tf.random_uniform([num_states,N_HIDDEN_1],-1/math.sqrt(num_states),1/math.sqrt(num_states)))
+        w1=tf.Variable(tf.random_uniform([num_states+num_hidden_states,N_HIDDEN_1],-1/math.sqrt(num_states+num_hidden_states),1/math.sqrt(num_states+num_hidden_states)))
         w2=tf.Variable(tf.random_uniform([N_HIDDEN_1,N_HIDDEN_2],-1/math.sqrt(N_HIDDEN_1+num_actions),1/math.sqrt(N_HIDDEN_1+num_actions)))
         w2_action=tf.Variable(tf.random_uniform([num_actions,N_HIDDEN_2],-1/math.sqrt(N_HIDDEN_1+num_actions),1/math.sqrt(N_HIDDEN_1+num_actions)))
         w3=tf.Variable(tf.random_uniform([N_HIDDEN_2,1],-0.003,0.003))

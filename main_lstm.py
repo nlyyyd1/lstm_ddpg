@@ -3,11 +3,15 @@
 import gym
 from gym.spaces import Box,Discrete
 import numpy as np
-from ddpg_lstm import DDPG
+from ddpg_lstm_new import DDPG
 from ou_noise import OUNoise
+import random
 
-episodes = 800
+episodes = 10000
 is_batch_norm = False
+num_hidden_states = 10
+BATCH_SIZE = 1
+epsilon = 0.3
 
 def main():
     experiment = 'MountainCarContinuous-v0'
@@ -35,23 +39,41 @@ def main():
         print '====starting episode no:',i,'====','\n'
         observation = env.reset()#每个情节初始化，但是模型参数不初始化
         reward_per_episode = 0
+        statec = np.zeros((BATCH_SIZE,num_hidden_states))
+        stateh = np.zeros((BATCH_SIZE,num_hidden_states))
+        
+        actor,statec_t1,stateh_t1 = agent.evaluate_actor(np.reshape(observation[0:num_states],[1,num_states]),statec,stateh)        
+        action = actor[0]+exploration_noise.noise()
+        observation,_,_,_ = env.step(action)
+        actor,statec_t,stateh_t = agent.evaluate_actor(np.reshape(observation[0:num_states],[1,num_states]),statec_t1,stateh_t1)
+        
         for t in xrange(steps):
             #env.render()
-            
             x = observation[0:num_states]
-            
-            action = agent.evaluate_actor(np.reshape(x,[1,num_states]))
           
             noise = exploration_noise.noise()
-            action = action[0]+noise
-            
-            #print 'Action at step',t,':',action,'\n'
-            
+            ra = random.random()
+            if(i<2000):
+                action = actor[0]+noise
+            else:
+                action = actor[0]
+                #action = np.array(random.uniform(-1,1)).reshape(1,)
+            #action = actor[0]+(1./(1.+t+i))
             observation,reward,done,info = env.step(action)
+            #print 'Action at step',t,':',action,'reward:',reward,'\n'
+
+            actor,statec_t1,stateh_t1,statec_t,stateh_t = agent.train(statec_t1,stateh_t1,x,statec_t,stateh_t,action,actor,observation[0:num_states],reward,done)
             
-            agent.train(x,action,observation[0:num_states],reward,done)
             reward_per_episode += reward
-            
+            if reward>1:
+                print reward
+            if reward<-1:
+                print actor
+                print observation
+                print stateh_t
+                print reward
+                break
+                   
             if (done or (t == steps-1)):
                 #一个情节结束了～
                 print 'EPISODE:',i,'Steps',t,'Total Reward:',reward_per_episode
