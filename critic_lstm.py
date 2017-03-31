@@ -7,8 +7,8 @@ import numpy as np
 import tensorflow as tf
 import math
 
-LEARNING_RATE = 0.001
-BATCH_SIZE = 1
+LEARNING_RATE = 0.0001
+BATCH_SIZE = 64
 TAU = 0.5
 
 class CriticNet:
@@ -81,7 +81,7 @@ class CriticNet:
     
     def evaluate_critic(self,state_t,action_t):
         #这个函数是用来给state和action来得到q函数的
-        return self.sess.run(self.critic_q_model,feed_dict={self.critic_state_in:stete_t,self.critic_aciton_in:action_t})
+        return self.sess.run(self.critic_q_model,feed_dict={self.critic_state_in:state_t,self.critic_aciton_in:action_t})
     
     def evaluate_target_critic(self,state_t_1,action_t_1):
         #这个是target网络的

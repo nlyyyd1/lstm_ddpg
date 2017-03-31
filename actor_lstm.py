@@ -8,7 +8,7 @@ import math
 from tensorflow.models.rnn.ptb import reader
 
 LEARNING_RATE = 0.0001
-BATCH_SIZE = 1
+BATCH_SIZE = 64
 TAU = 0
 
 class ActorNet:
@@ -28,11 +28,11 @@ class ActorNet:
             self.target_actor_parameters = self.target_actor_parameters[4:]
             #cost
             self.q_gradient_input = tf.placeholder('float',[None,num_actions])
-            gradients = tf.gradients(self.actor_model,self.actor_parameters,-self.q_gradient_input)
+            gradients = tf.gradients(self.actor_model,self.actor_parameters[2:],-self.q_gradient_input)
             #tf.gradient(x,y,z)表示的是求z×dx/dy
             self.parameters_gradients,_ =tf.clip_by_global_norm(gradients,5) 
             #要控制一下梯度膨胀
-            self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(zip(self.parameters_gradients,self.actor_parameters))
+            self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(zip(self.parameters_gradients,self.actor_parameters[2:]))
             
             self.update_target_parameters0 = tf.assign(self.target_actor_parameters[0],TAU*self.target_actor_parameters[0]+(1-TAU)*self.actor_parameters[0])
             self.update_target_parameters1 = tf.assign(self.target_actor_parameters[1],TAU*self.target_actor_parameters[1]+(1-TAU)*self.actor_parameters[1])
@@ -50,10 +50,10 @@ class ActorNet:
             
     def create_actor(self,num_states,num_hidden_states,num_actions,models):
         
-        input = tf.placeholder(tf.float32,[BATCH_SIZE,num_states])
-        statec = tf.placeholder(tf.float32,[BATCH_SIZE,num_hidden_states])
-        stateh = tf.placeholder(tf.float32,[BATCH_SIZE,num_hidden_states])
-        state = tuple([statec,stateh])        
+        input = tf.placeholder(tf.float32,[None,num_states])
+        statec = tf.placeholder(tf.float32,[None,num_hidden_states])
+        stateh = tf.placeholder(tf.float32,[None,num_hidden_states])
+        state = tuple([statec,stateh])  
                         
         if models == 'actor':
             with tf.variable_scope('actor'):
@@ -92,7 +92,7 @@ class ActorNet:
         return self.sess.run([self.target_actor_model,self.target_hiddenc,self.target_output],feed_dict={self.target_input:state_t,self.target_statec:c,self.target_stateh:h})
     
     def train_actor(self,actor_state_in,q_gradient_input,c,h):
-        return self.sess.run([self.hiddenc,self.output,self.optimizer],feed_dict={self.input:actor_state_in,self.q_gradient_input:q_gradient_input,self.statec:c,self.stateh:h})
+        self.sess.run(self.optimizer,feed_dict={self.input:actor_state_in,self.q_gradient_input:q_gradient_input,self.statec:c,self.stateh:h})
 
     def update_target_actor(self):
         self.sess.run([self.update_target_parameters0,self.update_target_parameters1,self.update_target_parameters2,self.update_target_parameters3])
